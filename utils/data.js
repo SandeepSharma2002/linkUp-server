@@ -1,0 +1,26 @@
+const tags = [
+  "python",
+  "c",
+  "c++",
+  "backend",
+  "algorithms",
+  "MERN",
+  "cloud-computing",
+  "database",
+  "machine-learning",
+  "web-development",
+  "reactjs",
+  "UI-UX",
+  "artificial-intelligence",
+  "frontend",
+  "data-science",
+  "programming",
+  "networking",
+  "cybersecurity",
+  "software-engineering",
+  "mobile-development",
+  "data-structures",
+  "computer-vision",
+];
+
+module.exports = tags;
