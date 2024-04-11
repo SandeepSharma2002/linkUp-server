@@ -22,13 +22,14 @@ const {
 } = require("../Controllers/Post");
 const { auth } = require("../middlewares/auth");
 const { uploadFile } = require("../utils/imageUploader");
+const { getAllTags } = require("../Controllers/Tags");
 
 router.post("/create-post", auth, createPost);
 router.post("/like-post", auth, likePost);
 router.get("/isliked-by-user", auth, isLikedByUser);
 router.get("/latest-posts", latestPosts);
 router.get("/trending-posts", trendingPosts);
-router.get("/tags", getTags);
+router.get("/tags", getAllTags);
 router.post("/comment", auth, addComment);
 router.get("/search-posts", auth, searchPosts);
 router.get("/delete-post", auth, deletePost);

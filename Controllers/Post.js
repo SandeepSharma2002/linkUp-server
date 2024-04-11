@@ -1,6 +1,7 @@
 const { nanoid } = require("nanoid");
 const Post = require("../Models/Post");
 const User = require("../Models/User");
+const Tag = require("../Models/Tag");
 const Notification = require("../Models/Notification");
 const Comment = require("../Models/Comment");
 const { uploadImage } = require("../utils/imageUploader");
@@ -80,6 +81,20 @@ exports.createPost = async (req, res) => {
         post_Id: postId,
         draft: Boolean(draft),
       });
+
+      let tagTitle = topic;
+
+      try {
+        await Tag.findOneAndUpdate(
+          { title: tagTitle },
+          { $inc: { totalPosts: 1 } },
+          { new: true, upsert: true },
+        ).then((response) => {
+          console.log("Tag added successfully");
+        });
+      } catch (error) {
+        console.log("Something Went Wrong while adding tag.");
+      }
 
       let response = await User.findByIdAndUpdate(
         user.id,
@@ -169,12 +184,14 @@ exports.latestPosts = async (req, res) => {
 
 exports.searchPosts = async (req, res) => {
   try {
-    let { title, skip, author, limit } = req.query;
+    let { title, query, skip, author, limit } = req.query;
     let findQuery;
     if (title) {
       findQuery = { title };
     } else if (author) {
       findQuery = { author };
+    } else if (query) {
+      findQuery = { title: new RegExp(query, "i") };
     }
     let maxLimit = limit || 10;
 
@@ -185,6 +202,18 @@ exports.searchPosts = async (req, res) => {
       .skip(skip || 0)
       .limit(maxLimit)
       .exec();
+
+    try {
+      await Tag.findOneAndUpdate(
+        { title: title },
+        { $inc: { totalSearch: 1 } },
+        { new: true },
+      ).then((response) => {
+        console.log("Tag added successfully");
+      });
+    } catch (error) {
+      console.log("Something Went Wrong while adding tag.");
+    }
 
     return res.status(200).json({
       success: true,
@@ -351,7 +380,13 @@ exports.deletePost = async (req, res) => {
 
   await Post.findByIdAndDelete(_id)
     .then(async (post) => {
-      console.log(post);
+      await Tag.findOneAndUpdate(
+        { title: post.title },
+        { $inc: { totalPosts: -1 } },
+        { new: true },
+      ).then((response) => {
+        console.log("Tag added successfully");
+      })
       await Notification.deleteMany({ post: post._id }).then((response) =>
         console.log("Notifications Deleted")
       );
