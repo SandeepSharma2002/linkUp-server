@@ -1,6 +1,7 @@
 const { nanoid } = require("nanoid");
 const Post = require("../Models/Post");
 const User = require("../Models/User");
+const Friend = require("../Models/FriendRequest");
 const { uploadImage } = require("../utils/imageUploader");
 
 exports.getUserProfile = async (req, res) => {
@@ -109,7 +110,7 @@ exports.searchUsers = async (req, res) => {
     let { query, skip, limit } = req.query;
 
     const fliteredUsers = await User.find({ username: new RegExp(query, "i") })
-      .select("username image fullName currentPosition -_id").skip(skip || 0)
+      .select("username image fullName email currentPosition -_id").skip(skip || 0)
       .limit(limit || 10)
       .exec();
 
@@ -219,7 +220,7 @@ exports.getUsersList = async (req, res) => {
   try {
     let maxLimit = 5;
     const allUsers = await User.find()
-      .select("username image fullName currentPosition -_id")
+      .select("username image fullName email currentPosition -_id")
       .limit(maxLimit)
       .exec();
 
@@ -236,3 +237,221 @@ exports.getUsersList = async (req, res) => {
     });
   }
 };
+
+exports.sendFriendRequest = async (req, res) => {
+  try {
+    let { id } = req.user;
+    let { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const docA = await Friend.findOneAndUpdate(
+      { requester: id, recipient: userId },
+      { $set: { status: 1 } },
+      { upsert: true, new: true }
+    )
+    const docB = await Friend.findOneAndUpdate(
+      { recipient: id, requester: userId },
+      { $set: { status: 2 } },
+      { upsert: true, new: true }
+    )
+    const updateUserA = await User.findOneAndUpdate(
+      { _id: id },
+      { $push: { friends: docA._id } }
+    )
+    const updateUserB = await User.findOneAndUpdate(
+      { _id: userId },
+      { $push: { friends: docB._id } }
+    )
+
+    if (!updateUserA || !updateUserB) {
+      console.log(error);
+      res.status(400).json({
+        success: false,
+        message: "User not found."
+      })
+    }
+    else {
+      res.status(200).json({
+        success: true,
+        data: removed,
+        message: "Friend request sent."
+      });
+    }
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: `Friend request not sent.`,
+    });
+  }
+};
+
+exports.acceptFriendRequest = async (req, res) => {
+  try {
+    let { id } = req.user;
+    let { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    Friend.findOneAndUpdate(
+      { requester: id, recipient: userId },
+      { $set: { status: 3 } }
+    )
+    Friend.findOneAndUpdate(
+      { recipient: id, requester: userId },
+      { $set: { status: 3 } }
+    )
+
+    res.status(200).json({
+      success: true,
+      data: removed,
+      message: "User added to friend list."
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: `User not added to friend list Failed`,
+    });
+  }
+};
+
+exports.removeFriend = async (req, res) => {
+  try {
+    let { id } = req.user;
+    let { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    Friend.findOneAndDelete(
+      { requester: id, recipient: userId }
+    )
+    Friend.findOneAndDelete(
+      { recipient: id, requester: userId }
+    )
+
+    res.status(200).json({
+      success: true,
+      data: removed,
+      message: "User removed from friend list."
+    });
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: `User removed from friend list Failed`,
+    });
+  }
+};
+
+exports.rejectFriendRequest = async (req, res) => {
+  try {
+    let { id } = req.user;
+    let { userId } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const docA = await Friend.findOneAndRemove(
+      { requester: id, recipient: userId }
+    )
+    const docB = await Friend.findOneAndRemove(
+      { recipient: id, requester: userId }
+    )
+    const updateUserA = await User.findOneAndUpdate(
+      { _id: id },
+      { $pull: { friends: docA._id } }
+    )
+    const updateUserB = await User.findOneAndUpdate(
+      { _id: userId },
+      { $pull: { friends: docB._id } }
+    )
+
+    if (!updateUserA || !updateUserB) {
+      console.log(error);
+      res.status(400).json({
+        success: false,
+        message: "User not found."
+      })
+    }
+    else {
+      res.status(200).json({
+        success: true,
+        data: removed,
+        message: "Friend request rejected."
+      });
+    }
+
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: `Friend request rejection Failed`,
+    });
+  }
+};
+
+exports.getFriends = async (req, res) => {
+  try {
+    let { id } = req.user;
+    let user = await User.aggregate([
+      {
+        "$lookup": {
+          "from": Friend.collection.name,
+          "let": { "friends": "$friends" },
+          "pipeline": [
+            {
+              "$match": {
+                "recipient": mongoose.Types.ObjectId(id),
+                "$expr": { "$in": ["$_id", "$$friends"] }
+              }
+            },
+            { "$project": { "status": 1 } }
+          ],
+          "as": "friends"
+        }
+      },
+      {
+        "$addFields": {
+          "friendsStatus": {
+            "$ifNull": [{ "$min": "$friends.status" }, 0]
+          }
+        }
+      }
+    ])
+    res.status(200).json({
+      success: true,
+      data: user,
+      message: "User friend list fetched."
+    });
+  } catch (error) {
+    console.log(error);
+    return res.status(500).json({
+      success: false,
+      message: `User friend list fetching Failed`,
+    });
+  }
+}

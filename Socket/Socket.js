@@ -1,42 +1,5 @@
-const express = require("express");
-const app = express();
-const userRoutes = require("./Routes/User")
-const postRoutes = require("./Routes/Post")
-const authRoutes = require("./Routes/Auth")
-const chatRoutes = require("./Routes/Chat")
-const messageRoutes = require("./Routes/Message")
-const cors = require("cors")
-const database = require('./Configue/database');
-const dotenv = require('dotenv');
 
 
-dotenv.config();
-const PORT = process.env.PORT || 4000;
-
-database.connect();
-app.use(cors());
-app.use(express.json());
-
-app.get("/", (req, res) => {
-    return res.json({
-        success: true,
-        message: "Server is up and running..."
-    });
-});
-
-// app.listen(PORT, () => {
-//     console.log(`Server Started At Port No.= ${PORT}`);
-// })
-
-app.use("/api/v1/user", userRoutes);
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/posts", postRoutes);
-app.use("/api/v1/chats", chatRoutes);
-app.use("/api/v1/message", messageRoutes);
-
-
-
-const server = app.listen(PORT, console.log(`Server started on port ${PORT}`));
 const io = require("socket.io")(server, {
     pingTimeout: 60000,
     cors: {
@@ -44,10 +7,11 @@ const io = require("socket.io")(server, {
         // credentials: true,
     },
 });
+
 io.on("connection", (socket) => {
     console.log("Connected to socket.io");
     socket.on("setup", (userData) => {
-        socket.join(userData);
+        socket.join(userData.data._id);
         socket.emit("connected");
     });
 

@@ -12,7 +12,7 @@ const mailSender = async (email, title, body) => {
     console.log(config);
     let transporter = nodemailer.createTransport(config);
     let info = await transporter.sendMail({
-      from: "BlogCampus || Join College Community",
+      from: "LinkUp || Join College Community",
       to: `${email}`,
       subject: `${title}`,
       html: `${body}`,

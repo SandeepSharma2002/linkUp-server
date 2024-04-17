@@ -40,8 +40,6 @@ exports.createPost = async (req, res) => {
     }
     let postId = id || generateRandomWord() + nanoid();
     console.log("Post Id", postId);
-
-    let formattedTags = tags?.map((tag) => tag.toLowerCase());
     let user = req.user;
 
     console.log("here User :", user);
@@ -384,9 +382,14 @@ exports.deletePost = async (req, res) => {
         { title: post.title },
         { $inc: { totalPosts: -1 } },
         { new: true },
-      ).then((response) => {
-        console.log("Tag added successfully");
+      ).then(async (response) => {
+        console.log(response)
+        await Tag.findOneAndDelete({
+          title: response.title
+        })
+        console.log("Tag deleted successfully");
       })
+
       await Notification.deleteMany({ post: post._id }).then((response) =>
         console.log("Notifications Deleted")
       );
@@ -697,7 +700,7 @@ exports.notifications = async (req, res) => {
     let notificationData = await Notification.find(findQuery)
       .skip(skipDoc)
       .limit(maxLimit)
-      .populate("post", "post_Id")
+      .populate("post", "post_Id des")
       .populate("user", "fullname username image")
       .populate("comment", "comment")
       .populate("replied_on_comment", "comment")

@@ -44,7 +44,7 @@ const userSchema = mongoose.Schema(
     },
     contactNumber: {
       type: Number,
-      default:null
+      default: null
     },
     password: {
       type: String,
@@ -94,7 +94,7 @@ const userSchema = mongoose.Schema(
     },
     banner: {
       type: String,
-      default:"https://e1.pxfuel.com/desktop-wallpaper/981/878/desktop-wallpaper-flex-banner-backgrounds-design-banner-backgrounds.jpg"
+      default: "https://e1.pxfuel.com/desktop-wallpaper/981/878/desktop-wallpaper-flex-banner-backgrounds-design-banner-backgrounds.jpg"
     },
     active: {
       type: Boolean,
@@ -114,6 +114,12 @@ const userSchema = mongoose.Schema(
       enum: ["adimn", "user", "instructor"],
       default: "user",
     },
+    friends: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Friends'
+      }
+    ],
     social_links: {
       youtube: {
         type: String,
