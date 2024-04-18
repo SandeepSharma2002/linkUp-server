@@ -233,6 +233,7 @@ exports.login = async (req, res) => {
             access_token: user.token,
             googleAuth: user.googleAuth,
             email: email,
+            id:user._id,
             image: user.image,
             role: user.role
           },

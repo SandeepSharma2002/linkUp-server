@@ -220,7 +220,7 @@ exports.getUsersList = async (req, res) => {
   try {
     let maxLimit = 5;
     const allUsers = await User.find()
-      .select("username image fullName email currentPosition -_id")
+      .select("username image fullName email currentPosition _id")
       .limit(maxLimit)
       .exec();
 

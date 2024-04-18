@@ -13,11 +13,13 @@ exports.accessChat = async (req, res) => {
             });
         }
         const chats = await Chat.find({
-            isGroupChat: false, $and: [
-                { users: { $elemMatch: { $in: [id] } } },
-                { users: { $elemMatch: { $in: [userId] } } }
+            $and: [
+                { users: { $elemMatch: { $in: id } } },
+                { users: { $elemMatch: { $in: userId } } }
             ]
         }).populate("users", "fullname username image").populate("latestMessage");
+
+        console.log(chats);
 
         const isChat = await User.populate(chats, {
             path: "latestMessage.sender",
@@ -40,7 +42,7 @@ exports.accessChat = async (req, res) => {
 
             try {
                 const createdChat = await Chat.create(chatData);
-                const fullChat = await Chat.findOne({ _id: createdChat._id }).populate("user", "fullname username image");
+                const fullChat = await Chat.findOne({ _id: createdChat._id }).populate("users", "fullname username image");
                 res.status(200).json({
                     success: true,
                     message: "Chat fetched successfully",
@@ -67,7 +69,7 @@ exports.accessChat = async (req, res) => {
 exports.fetchChats = async (req, res) => {
     try {
         let chats = await Chat.find({ users: { $elemMatch: { Seq: req.user.id } } })
-            .populate("user", "fullname username image")
+            .populate("users", "fullname username image")
             .populate("groupAdmin", "fullname username image")
             .populate("latestMessage")
             .sort({ updatedAt: -1 })
@@ -77,7 +79,7 @@ exports.fetchChats = async (req, res) => {
                     select: "name email",
                 });
             });
-            console.log(chats);
+        console.log(chats);
         res.status(200).json({
             success: true,
             data: chats,
@@ -92,103 +94,103 @@ exports.fetchChats = async (req, res) => {
     }
 }
 
-exports.fetchGroups = async (req, res) => {
-    try {
+// exports.fetchGroups = async (req, res) => {
+//     try {
 
-        let chats = await Chat.where("isGroupChat").equals(true);
-        res.status(200).json({
-            success: true,
-            data: chats,
-            message: "Group Chats fetched succesfully"
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(400).json({
-            success: false,
-            message: "Error in fetching group chats"
-        })
-    }
+//         let chats = await Chat.where("isGroupChat").equals(true);
+//         res.status(200).json({
+//             success: true,
+//             data: chats,
+//             message: "Group Chats fetched succesfully"
+//         });
+//     } catch (error) {
+//         console.log(error);
+//         res.status(400).json({
+//             success: false,
+//             message: "Error in fetching group chats"
+//         })
+//     }
 
-}
+// }
 
-exports.createGroupChat = async (req, res) => {
-    if (!req.body.users || !req.body.name) {
-        return res.status(400).json({
-            success: false,
-            message: "Data is insufficient."
-        });
-    }
-    var users = JSON.parse(req.body.users);
-    console.log("chatController/createGroups: ", req);
-    users.push(req.user);
+// exports.createGroupChat = async (req, res) => {
+//     if (!req.body.users || !req.body.name) {
+//         return res.status(400).json({
+//             success: false,
+//             message: "Data is insufficient."
+//         });
+//     }
+//     var users = JSON.parse(req.body.users);
+//     console.log("chatController/createGroups: ", req);
+//     users.push(req.user);
 
-    try {
-        const groupChat = await Chat.create({
-            chatName: req.body.name,
-            users: users,
-            isGroupChat: true,
-            groupAdmin: req.user,
-        });
-        const fullGroupChat = await Chat.findOne({ _id: groupChat._id }).populate("user", "fullname username image")
-            .populate("groupAdmin", "fullname username image");
-        res.status(200).json({
-            success: true,
-            data: fullGroupChat,
-            message: "Chats fetched succesfully."
-        });
-    } catch (error) {
-        console.log(error);
-        res.status(400).json({
-            success: false,
-            message: "Error in creating group chats"
-        })
-    }
-}
+//     try {
+//         const groupChat = await Chat.create({
+//             chatName: req.body.name,
+//             users: users,
+//             isGroupChat: true,
+//             groupAdmin: req.user,
+//         });
+//         const fullGroupChat = await Chat.findOne({ _id: groupChat._id }).populate("user", "fullname username image")
+//             .populate("groupAdmin", "fullname username image");
+//         res.status(200).json({
+//             success: true,
+//             data: fullGroupChat,
+//             message: "Chats fetched succesfully."
+//         });
+//     } catch (error) {
+//         console.log(error);
+//         res.status(400).json({
+//             success: false,
+//             message: "Error in creating group chats"
+//         })
+//     }
+// }
 
-exports.groupExit = async (req, res) => {
-    const { chatId, userId } = req.body;
-    const removed = await Chat.findByIdAndUpdate({ _id: chatId },
-        { $pull: { users: userId } }, { new: true }).populate("user", "fullname username image")
-        .populate("groupAdmin", "fullname username image");
+// exports.groupExit = async (req, res) => {
+//     const { chatId, userId } = req.body;
+//     const removed = await Chat.findByIdAndUpdate({ _id: chatId },
+//         { $pull: { users: userId } }, { new: true }).populate("user", "fullname username image")
+//         .populate("groupAdmin", "fullname username image");
 
-    if (!removed) {
-        console.log(error);
-        res.status(400).json({
-            success: false,
-            message: "Chat not found user not removed"
-        })
-    }
-    else {
-        res.status(200).json({
-            success: true,
-            data: removed,
-            message: "User removed succesfully."
-        });
-    }
+//     if (!removed) {
+//         console.log(error);
+//         res.status(400).json({
+//             success: false,
+//             message: "Chat not found user not removed"
+//         })
+//     }
+//     else {
+//         res.status(200).json({
+//             success: true,
+//             data: removed,
+//             message: "User removed succesfully."
+//         });
+//     }
 
-}
+// }
 
-exports.addSelfToGroup = async (req, res) => {
-    const { chatId, userId } = req.body;
+// exports.addSelfToGroup = async (req, res) => {
+//     const { chatId, userId } = req.body;
 
-    const added = await Chat.findByIdAndUpdate(chatId, {
-        $push: { users: userId }
-    }, { new: true }
-    ).populate("user", "fullname username image")
-        .populate("groupAdmin", "fullname username image");
+//     const added = await Chat.findByIdAndUpdate(chatId, {
+//         $push: { users: userId }
+//     }, { new: true }
+//     ).populate("user", "fullname username image")
+//         .populate("groupAdmin", "fullname username image");
 
-    if (!added) {
-        console.log(error);
-        res.status(400).json({
-            success: false,
-            message: "Chat not found user not added."
-        })
-    }
-    else {
-        res.status(200).json({
-            success: true,
-            data: removed,
-            message: "User added succesfully."
-        });
-    }
-}
+//     if (!added) {
+//         console.log(error);
+//         res.status(400).json({
+//             success: false,
+//             message: "Chat not found user not added."
+//         })
+//     }
+//     else {
+//         res.status(200).json({
+//             success: true,
+//             data: removed,
+//             message: "User added succesfully."
+//         });
+//     }
+// }
