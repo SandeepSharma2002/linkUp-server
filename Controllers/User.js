@@ -108,8 +108,8 @@ exports.updateUserProfile = async (req, res) => {
 exports.searchUsers = async (req, res) => {
   try {
     let { query, skip, limit } = req.query;
-
-    const fliteredUsers = await User.find({ username: new RegExp(query, "i") })
+    const { id } = req.user;
+    const fliteredUsers = await User.find({ username: new RegExp(query, "i") , _id: { $ne: id }})
       .select("username image fullName email currentPosition -_id").skip(skip || 0)
       .limit(limit || 10)
       .exec();
@@ -218,8 +218,9 @@ exports.updateUserLogo = async (req, res) => {
 
 exports.getUsersList = async (req, res) => {
   try {
+    let { id } = req.user;
     let maxLimit = 5;
-    const allUsers = await User.find()
+    const allUsers = await User.find({ _id: { $ne: id }})
       .select("username image fullName email currentPosition _id")
       .limit(maxLimit)
       .exec();
